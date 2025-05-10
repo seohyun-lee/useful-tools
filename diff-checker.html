@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>텍스트 비교 도구</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f5f5;
+            --text-color: #333;
+            --border-color: #ddd;
+            --hover-color: #e9ecef;
+            --diff-add: #e6ffed;
+            --diff-remove: #ffeef0;
+            --diff-add-border: #acf2bd;
+            --diff-remove-border: #fdb8c0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .back-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .back-button:hover {
+            background-color: #357abd;
+        }
+
+        .diff-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .text-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            resize: vertical;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .result-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .diff-result {
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            padding: 12px;
+            border-radius: 4px;
+            background-color: var(--secondary-color);
+            min-height: 300px;
+            line-height: 1.8;
+        }
+
+        .diff-char {
+            display: inline-block;
+            padding: 0 1px;
+            border-radius: 2px;
+        }
+
+        .diff-add {
+            background-color: var(--diff-add);
+            border-bottom: 2px solid var(--diff-add-border);
+        }
+
+        .diff-remove {
+            background-color: var(--diff-remove);
+            border-bottom: 2px solid var(--diff-remove-border);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        button:hover {
+            background-color: #357abd;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>텍스트 비교 도구</h1>
+            <button class="back-button" onclick="window.location.href='index.html'">← 홈으로 돌아가기</button>
+        </div>
+
+        <div class="diff-container">
+            <div class="text-section">
+                <h3>원본 텍스트</h3>
+                <textarea id="originalText" placeholder="원본 텍스트를 입력하세요"></textarea>
+            </div>
+            <div class="text-section">
+                <h3>비교할 텍스트</h3>
+                <textarea id="compareText" placeholder="비교할 텍스트를 입력하세요"></textarea>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: var(--diff-add); border-bottom: 2px solid var(--diff-add-border);"></div>
+                <span>추가된 텍스트</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: var(--diff-remove); border-bottom: 2px solid var(--diff-remove-border);"></div>
+                <span>삭제된 텍스트</span>
+            </div>
+        </div>
+
+        <button onclick="compareTexts()" style="width: 100%;">비교하기</button>
+
+        <div class="result-section">
+            <h3>비교 결과</h3>
+            <div id="diffResult" class="diff-result"></div>
+        </div>
+    </div>
+
+    <script>
+        function findLCS(str1, str2) {
+            const m = str1.length;
+            const n = str2.length;
+            const dp = Array(m + 1).fill().map(() => Array(n + 1).fill(0));
+            
+            // LCS 길이 계산
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (str1[i-1] === str2[j-1]) {
+                        dp[i][j] = dp[i-1][j-1] + 1;
+                    } else {
+                        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+                    }
+                }
+            }
+            
+            // LCS 문자열 복원
+            const lcs = [];
+            let i = m, j = n;
+            while (i > 0 && j > 0) {
+                if (str1[i-1] === str2[j-1]) {
+                    lcs.unshift(str1[i-1]);
+                    i--; j--;
+                } else if (dp[i-1][j] > dp[i][j-1]) {
+                    i--;
+                } else {
+                    j--;
+                }
+            }
+            return lcs.join('');
+        }
+
+        function compareTexts() {
+            const original = document.getElementById('originalText').value;
+            const compare = document.getElementById('compareText').value;
+            
+            const lcs = findLCS(original, compare);
+            let result = '';
+            let i = 0, j = 0, k = 0;
+            
+            while (i < original.length || j < compare.length) {
+                if (i < original.length && j < compare.length && original[i] === compare[j]) {
+                    // 같은 문자
+                    result += `<span class="diff-char">${original[i]}</span>`;
+                    i++; j++;
+                } else if (j < compare.length && (i >= original.length || original[i] !== compare[j])) {
+                    // 추가된 문자
+                    result += `<span class="diff-char diff-add">${compare[j]}</span>`;
+                    j++;
+                } else if (i < original.length && (j >= compare.length || original[i] !== compare[j])) {
+                    // 삭제된 문자
+                    result += `<span class="diff-char diff-remove">${original[i]}</span>`;
+                    i++;
+                }
+            }
+            
+            document.getElementById('diffResult').innerHTML = result;
+        }
+    </script>
+</body>
+</html>
