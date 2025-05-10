@@ -153,6 +153,9 @@
                 <button onclick="convertFromBr()">&lt;br&gt;을 엔터로 변환</button>
                 <button onclick="removeHtmlTags()">HTML 태그 모두 삭제 (엔터 유지)</button>
             </div>
+            <div>
+                <button onclick="removeStrikethroughText()">취소선 포함된 텍스트 제거</button>
+            </div>
         </div>
 
         <div class="output-section">
@@ -201,6 +204,12 @@
             // HTML 태그를 제거하되 <br> 태그는 줄바꿈으로 변환
             const output = input.replace(/<br>/g, '\n')
                                .replace(/<[^>]*>/g, '');
+            document.getElementById('output').value = output;
+        }
+        function removeStrikethroughText() {
+            const input = document.getElementById('input').value;
+            // ~~텍스트~~ 패턴을 찾아서 해당 부분을 제거
+            const output = input.replace(/~~[^~]*~~/g, '');
             document.getElementById('output').value = output;
         }
     </script>
